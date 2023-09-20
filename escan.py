@@ -23,8 +23,8 @@ image = Image.open(image_path)
 width, height = image.size
 
 # Calculate the width and height of each frame
-frame_width = width // 3
-frame_height = height // 3
+frame_width = width // 9
+frame_height = height // 9
 
 # Initialize a list to store the frames
 frames = []
@@ -63,13 +63,39 @@ for i, frame in enumerate(frames):
 
 print("Frames created successfully!")
 
-# Open the image using Pillow (PIL)
-image_path = 'frame_1.png'  # Replace with the path to your image
-image = Image.open(image_path)
+nums = []
+numss = []
+for i, frame in enumerate(frames):
+    # Load the img
+    image = cv2.imread(f"frame_{i+1}.png")
+    height, width, channels = image.shape
 
-# Perform OCR on the image
-text = pytesseract.image_to_string(image)
+    # Cvt to hsv
+    hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
 
-# Extract and print the detected numbers
-detected_numbers = ''.join(filter(str.isdigit, text))
-print("Detected Numbers:", detected_numbers)
+    # Get binary-mask
+    msk = cv2.inRange(hsv, np.array([0, 0, 175]), np.array([179, 255, 255]))
+    krn = cv2.getStructuringElement(cv2.MORPH_RECT, (5, 3))
+    dlt = cv2.dilate(msk, krn, iterations=1)
+    thr = 255 - cv2.bitwise_and(dlt, msk)
+
+    reduce = 10
+    crop_img = thr[reduce:width-reduce, reduce:height-reduce]
+
+    # OCR
+    d = pytesseract.image_to_string(crop_img, config="--psm 10")
+    if not(d=='_\n' or d=='?\n' or d=='A\n'):
+        nums.append(int(d))
+    else:
+        if (d=='?\n'):
+            nums.append(2)
+        elif (d=='A\n'):
+            nums.append(4)
+        else:
+            nums.append(0)
+    if(len(nums)==9):
+        print(nums)
+        numss.append(nums)
+        nums = []
+
+print(numss)
